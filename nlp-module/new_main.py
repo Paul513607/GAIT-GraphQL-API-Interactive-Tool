@@ -1,157 +1,238 @@
 import spacy
 import nltk
 from nltk.corpus import wordnet
-import requests
-import json
+from pprint import pprint
 
+# Load SpaCy model
+nlp = spacy.load("en_core_web_sm")
+
+# Ensure NLTK WordNet is downloaded
 nltk.download('wordnet')
-nltk.download('omw-1.4')
+# schema_fetcher.py
+from pprint import pprint
 
+import requests
+from gql import gql, Client
+from gql.transport.aiohttp import AIOHTTPTransport
+from gql.transport.requests import RequestsHTTPTransport
 
-class GraphQLNLPParser:
-    def __init__(self, endpoint):
-        self.endpoint = endpoint
-        self.schema = self.fetch_schema()
-        self.nlp = spacy.load("en_core_web_md")  # Using medium model for better word vectors
+def fetch_graphql_schema(api_url):
+    transport = RequestsHTTPTransport(url=api_url)
+    client = Client(transport=transport, fetch_schema_from_transport=True)
 
-    def fetch_schema(self):
-        """
-        Fetches the GraphQL schema using introspection.
-        """
-        query = """
-        {
-          __schema {
-            types {
-              name
-              fields {
-                name
-                type {
-                  name
-                  kind
-                }
-              }
-            }
+    """
+    Fetch the GraphQL schema using introspection.
+    """
+    query = gql("""
+    query IntrospectionQuery {
+      __schema {
+        queryType { name }
+        types {
+          ...FullType
+        }
+      }
+    }
+    fragment FullType on __Type {
+      kind
+      name
+      fields(includeDeprecated: true) {
+        name
+        args {
+          name
+          type {
+            ...TypeRef
           }
         }
-        """
-        response = requests.post(self.endpoint, json={'query': query})
-        if response.status_code == 200:
-            return response.json()["data"]["__schema"]["types"]
-        return None
+        type {
+          ...TypeRef
+        }
+      }
+      inputFields {
+        name
+        type { ...TypeRef }
+      }
+    }
+    fragment TypeRef on __Type {
+      kind
+      name
+      ofType {
+        kind
+        name
+        ofType {
+          kind
+          name
+        }
+      }
+    }
+    """)
+    response = client.execute(query)
+    pprint(response['__schema'])
+    return response['__schema']
 
-    def get_synonyms(self, word):
-        """
-        Retrieves synonyms for a given word using WordNet.
-        """
-        synonyms = set()
-        for syn in wordnet.synsets(word):
-            for lemma in syn.lemmas():
-                synonyms.add(lemma.name().replace("_", " "))
-        return synonyms
+# schema_parser.py
+def parse_schema(schema):
+    """
+    Parse the schema to extract entities, fields, and filters.
+    """
+    query_type_name = schema['queryType']['name']
+    query_types = {t['name']: t for t in schema['types'] if t['name'] == query_type_name}
+    input_types = {t['name']: t for t in schema['types'] if t['kind'] == "INPUT_OBJECT"}
+    entity_types = {t['name']: t for t in schema['types'] if t['kind'] == "OBJECT"}
 
-    def normalize_term(self, term):
-        """
-        Normalize a term using spaCy's lemmatization.
-        """
-        return self.nlp(term)[0].lemma_
+    queryable_entities = {}
 
-    def extract_entities(self, user_input):
-        """
-        Extracts relevant entities from user input, including filters.
-        """
-        doc = self.nlp(user_input.lower())
-        entities = {ent.text.lower() for ent in doc.ents}
-        tokens = {token.text.lower() for token in doc}
+    def get_type_name(type_obj):
+        while type_obj and 'ofType' in type_obj and type_obj['ofType']:
+            type_obj = type_obj['ofType']
+        return type_obj.get('name', type_obj.get('kind', 'UNKNOWN'))
 
-        conditions = None
-        for token in doc:
-            if token.text in ["in", "of", "by", "with"] and token.i + 1 < len(doc):
-                conditions = doc[token.i + 1].text.lower()
-                break
+    def expand_input_type(input_type_name):
+        if input_type_name not in input_types:
+            return input_type_name
 
-        return entities.union(tokens), conditions
+        expanded = {}
+        for field in input_types[input_type_name]['inputFields']:
+            field_name = field['name']
+            field_type = get_type_name(field['type'])
 
-    def match_to_schema(self, entities):
-        """
-        Matches extracted entities to the GraphQL schema.
-        """
-        if not self.schema:
-            return None
+            if field['type']['kind'] == "INPUT_OBJECT":
+                expanded[field_name] = expand_input_type(field_type)
+            else:
+                expanded[field_name] = field_type
 
-        schema_types = {t["name"].lower(): t for t in self.schema if t["name"]}
-        possible_matches = {"resource": None, "field": None}
+        return expanded
 
-        for entity in entities:
-            normalized_entity = self.normalize_term(entity)
+    if query_type_name in query_types:
+        query_fields = query_types[query_type_name]['fields']
+        for field in query_fields:
+            entity_name = field['name']
+            entity_type = get_type_name(field['type'])
+            args = field.get('args', [])
+            filters = {}
 
-            if normalized_entity in schema_types:
-                possible_matches["resource"] = schema_types[normalized_entity]["name"]
-                continue
+            if args:
+                for arg in args:
+                    arg_name = arg['name']
+                    arg_type = get_type_name(arg['type'])
 
-            for schema_type, details in schema_types.items():
-                if "fields" in details and details["fields"]:
-                    field_names = {f["name"]: f for f in details["fields"]}
-                    if normalized_entity in field_names:
-                        possible_matches["field"] = field_names[normalized_entity]["name"]
-                        break
+                    if arg['type']['kind'] == "INPUT_OBJECT" and arg_type in input_types:
+                        filters[arg_name] = expand_input_type(arg_type)
+                    else:
+                        filters[arg_name] = arg_type
 
-            for synonym in self.get_synonyms(entity):
-                normalized_synonym = self.normalize_term(synonym)
-                if normalized_synonym in schema_types:
-                    possible_matches["resource"] = schema_types[normalized_synonym]["name"]
-                    break
+            entity_fields = {}
+            if entity_type in entity_types:
+                entity_fields = {
+                    f['name']: get_type_name(f['type'])
+                    for f in entity_types[entity_type]['fields']
+                }
 
-                for schema_type, details in schema_types.items():
-                    if "fields" in details and details["fields"]:
-                        field_names = {f["name"]: f for f in details["fields"]}
-                        if normalized_synonym in field_names:
-                            possible_matches["field"] = field_names[normalized_synonym]["name"]
-                            break
+            queryable_entities[entity_name] = {
+                "return_type": entity_type,
+                "fields": entity_fields,
+                "filters": filters
+            }
 
-        return possible_matches
+    return queryable_entities
 
-    def generate_query(self, intent, resource, field, condition):
-        """
-        Generates a GraphQL query based on intent and schema mapping.
-        """
-        if not resource:
-            return "No valid GraphQL entities found."
+def parse_graphql_schema(schema):
+    queryable_entities = {}
 
-        if intent == "fetch":
-            query = f"""
-            {{
-                {resource} {{
-                    {field if field else "name"}
-                }}
-            }}
-            """
-        elif intent == "filter" and field and condition:
-            query = f"""
-            {{
-                {resource}(filter: {{ {field}: {{ eq: "{condition}" }} }}) {{
-                    {field}
-                }}
-            }}
-            """
-        else:
-            query = f"""
-            {{
-                {resource} {{
-                    name
-                }}
-            }}
-            """
+    # Extract query types
+    query_type = schema.get('queryType', {}).get('name')
+    queryable_entities['queries'] = {}
 
-        return query
+    if query_type:
+        query_fields = [t for t in schema['types'] if t['name'] == query_type][0]['fields']
+        for field in query_fields:
+            queryable_entities['queries'][field['name']] = {
+                'args': {arg['name']: arg['type'] for arg in field.get('args', [])},
+                'return_type': field['type']
+            }
+
+    # Extract mutations if available
+    mutation_type = schema.get('mutationType', {}).get('name')
+    if mutation_type:
+        mutation_fields = [t for t in schema['types'] if t['name'] == mutation_type][0]['fields']
+        queryable_entities['mutations'] = {}
+        for field in mutation_fields:
+            queryable_entities['mutations'][field['name']] = {
+                'args': {arg['name']: arg['type'] for arg in field.get('args', [])},
+                'return_type': field['type']
+            }
+
+    # Extract object types
+    object_types = {t['name']: t for t in schema['types'] if t['kind'] == 'OBJECT'}
+    queryable_entities['object_types'] = object_types
+
+    return queryable_entities
+
+def get_synonyms(word):
+    """Returns synonyms for a given word using NLTK's WordNet"""
+    synonyms = set()
+    for syn in wordnet.synsets(word):
+        for lemma in syn.lemmas():
+            synonyms.add(lemma.name().lower())
+    return synonyms
 
 
-# Example usage:
-if __name__ == "__main__":
-    gql_parser = GraphQLNLPParser("https://countries.trevorblades.com/")
-    user_input = "find all countries in africa"
-    extracted_entities, condition = gql_parser.extract_entities(user_input)
-    schema_mapping = gql_parser.match_to_schema(extracted_entities)
-    intent = "filter" if condition else "fetch"
-    graphql_query = gql_parser.generate_query(intent, schema_mapping["resource"], schema_mapping["field"], condition)
-    print("\nGenerated GraphQL Query:")
-    print(graphql_query)
+def match_query(user_input, parsed_schema):
+    """Matches user input with GraphQL queries using spaCy & NLTK synonyms"""
+    doc = nlp(user_input)
+
+    # Extract nouns & proper nouns (likely entities)
+    keywords = {token.text.lower() for token in doc if token.pos_ in ['NOUN', 'PROPN']}
+
+    # Expand keywords with synonyms
+    expanded_keywords = set()
+    for word in keywords:
+        expanded_keywords.add(word)
+        expanded_keywords.update(get_synonyms(word))
+
+    # Match against GraphQL queries
+    best_match = None
+    best_score = 0
+
+    for query_name, query_details in parsed_schema['queries'].items():
+        query_keywords = {query_name.lower()}
+        query_keywords.update(get_synonyms(query_name.lower()))
+
+        # Calculate match score
+        score = len(expanded_keywords & query_keywords)
+        if score > best_score:
+            best_match = query_name
+            best_score = score
+
+    return best_match
+
+
+def generate_graphql_query(user_input, parsed_schema):
+    """Generates a GraphQL query based on user input"""
+    matched_query = match_query(user_input, parsed_schema)
+
+    if not matched_query:
+        return "No matching query found."
+
+    query_details = parsed_schema['queries'][matched_query]
+
+    # Create a sample query
+    args = query_details['args']
+    query_args = ", ".join(f"{arg}: \"example_value\"" for arg in args)
+
+    graphql_query = f"""
+    query {{
+        {matched_query}({query_args}) {{
+            {", ".join(args.keys())}  # Selecting all available fields
+        }}
+    }}
+    """
+
+    return graphql_query
+
+
+# Example Usage
+user_input = "Get country with code US"
+parsed_schema = parse_graphql_schema(fetch_graphql_schema("https://countries.trevorblades.com/"))
+graphql_query = generate_graphql_query(user_input, parsed_schema)
+
+print(graphql_query)

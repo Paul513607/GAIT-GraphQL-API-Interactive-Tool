@@ -6,8 +6,8 @@ from schema_fetcher import fetch_graphql_schema, parse_schema
 
 def main():
     # Step 1: Fetch and parse schema
-    api_url = "https://www.universe.com/graphql"
-    # api_url = "https://countries.trevorblades.com/"
+    # api_url = "https://www.universe.com/graphql"
+    api_url = "https://countries.trevorblades.com/"
     schema = fetch_graphql_schema(api_url)
     parsed_schema = parse_schema(schema)
     normalized_schema = normalize_schema(parsed_schema)
