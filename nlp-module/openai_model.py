@@ -81,7 +81,7 @@ def generate_graphql_query(api_url, user_input):
 
     response = client.chat.completions.create(model="gpt-4o-mini",
     messages=[
-        {"role": "system", "content": "You are an expert GraphQL query generator."},
+        {"role": "system", "content": "You are an expert GraphQL query generator. You are to only show the generated query."},
         {"role": "user", "content": prompt}
     ])
 
