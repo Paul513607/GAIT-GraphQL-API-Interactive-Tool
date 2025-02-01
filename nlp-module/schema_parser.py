@@ -57,4 +57,13 @@ def determine_field_type(type_info):
 
     kind = type_info.get("kind")
     name = type_info.get("name")
-    of_type = type_info
+    of_type = type_info.get("ofType")
+
+    if kind in {"SCALAR", "ENUM", "OBJECT", "INPUT_OBJECT"}:
+        return name
+    elif kind == "NON_NULL" and of_type:
+        return determine_field_type(of_type)
+    elif kind == "LIST" and of_type:
+        return f"List[{determine_field_type(of_type)}]"
+
+    return name  # Default to name if nothing else matches

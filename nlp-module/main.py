@@ -1,43 +1,46 @@
-from schema_fetcher import fetch_graphql_schema
-from schema_parser import parse_schema
-from nlp_processor import (
-    normalize_schema,
-    extract_intent_and_entities,
-    detect_intent,
-    extract_resource,
-    extract_fields,
-    extract_conditions,
-)
+# main.py
+from nlp_processor import normalize_schema, extract_intent_and_entities
 from query_generator import generate_graphql_query
-from util import map_to_schema
+from schema_fetcher import fetch_graphql_schema, parse_schema
+
 
 def main():
-    # Step 1: Fetch and parse the GraphQL schema
-    api_url = "https://countries.trevorblades.com/"  # Example public GraphQL API
+    # Step 1: Fetch and parse schema
+    api_url = "https://www.universe.com/graphql"
+    # api_url = "https://countries.trevorblades.com/"
     schema = fetch_graphql_schema(api_url)
     parsed_schema = parse_schema(schema)
     normalized_schema = normalize_schema(parsed_schema)
 
-    # Step 2: Accept user input
-    user_query = 'Find countries with code US'
+    while True:
+        try:
+            # Step 2: Get user input
+            user_query = input("\nEnter your query (or 'quit' to exit): ")
+            if user_query.lower() == 'quit':
+                break
 
-    # Step 3: Extract intent and entities
-    intent, resource, fields, conditions = extract_intent_and_entities(user_query, normalized_schema)
+            # Step 3: Process the query
+            intent, resource, fields, resource_conditions, field_conditions = extract_intent_and_entities(
+                user_query, parsed_schema, normalized_schema
+            )
 
-    # Step 4: Map extracted entities to the schema
-    try:
-        resource, mapped_fields, mapped_conditions = map_to_schema(resource, fields, conditions, parsed_schema)
-    except ValueError as e:
-        print(f"Error: {e}")
-        return
+            # Step 4: Generate the query
+            query = generate_graphql_query(
+                intent, resource, fields, resource_conditions, field_conditions, parsed_schema
+            )
 
-    # Step 5: Generate the GraphQL query
-    try:
-        graphql_query = generate_graphql_query(intent, resource, mapped_fields, mapped_conditions, parsed_schema)
-        print("\nGenerated GraphQL Query:")
-        print(graphql_query)
-    except ValueError as e:
-        print(f"Error generating query: {e}")
+            print("\nGenerated GraphQL Query:")
+            print(query)
+
+            # Step 5: Execute the query (optional)
+            # response = requests.post(api_url, json={'query': query})
+            # print("\nResponse:")
+            # print(json.dumps(response.json(), indent=2))
+
+        except ValueError as e:
+            print(f"\nError: {e}")
+        except Exception as e:
+            print(f"\nUnexpected error: {e}")
 
 if __name__ == "__main__":
     main()
