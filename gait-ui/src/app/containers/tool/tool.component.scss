@@ -1,0 +1,26 @@
+.content {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  width: 100%;
+  max-width: 1000px;
+  margin-bottom: 3rem;
+}
+
+.flex-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  width: 100%;
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.panels {
+  min-height: 500px;
+  mat-form-field {
+    height: 100%;
+  }
+}
