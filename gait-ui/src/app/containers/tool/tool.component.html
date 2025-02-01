@@ -1,0 +1,32 @@
+<h1>GraphQL API Interactive Tool</h1>
+<div class="container">
+  <div class="content">
+    <div class="flex-row panels">
+      <mat-form-field>
+        <mat-label>The GraphQL Query</mat-label>
+        <textarea matInput cdkTextareaAutosize></textarea>
+      </mat-form-field>
+      <mat-form-field>
+        <mat-label>The Response</mat-label>
+        <textarea readonly="true" matInput cdkTextareaAutosize></textarea>
+      </mat-form-field>
+    </div>
+    <div class="flex-row">
+      <mat-form-field>
+        <textarea
+          matInput
+          cdkTextareaAutosize
+          #autosize="cdkTextareaAutosize"
+          cdkAutosizeMinRows="1"
+          cdkAutosizeMaxRows="5"
+        ></textarea>
+        <button mat-icon-button matSuffix>
+          <mat-icon>send</mat-icon>
+        </button>
+        <mat-hint align="start"
+          >Check docs for info about using this tool</mat-hint
+        >
+      </mat-form-field>
+    </div>
+  </div>
+</div>
