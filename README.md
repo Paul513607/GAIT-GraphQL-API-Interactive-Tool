@@ -37,7 +37,6 @@ Maybe you can mention me or this repo in the acknowledgements too
   * [Prerequisites](#bangbang-prerequisites)
   * [Installation](#gear-installation)
   * [Run Locally](#running-run-locally)
-- [Usage](#eyes-usage)
 - [Roadmap](#compass-roadmap)
 - [License](#warning-license)
 - [Contact](#handshake-contact)
