@@ -228,17 +228,9 @@ def parse_graphql_schema(schema):
 
 
 
-# Assuming `schema` is the result from fetch_graphql_schema(api_url)
-schema = fetch_graphql_schema("https://countries.trevorblades.com/")
-# schema = fetch_graphql_schema("https://graphql.canopyapi.co/")
-# schema = fetch_graphql_schema("https://beta.pokeapi.co/graphql/v1beta")
-parsed_schema = parse_graphql_schema(schema)
-# parse_schema2 = parse_schema(schema)
-
-# pprint(schema.type_map["Continent"].fields)
-# pprint(schema.query_type.fields)
-# pprint(schema.mutation_type)
-# pprint(schema.directives)
-# pprint(schema.ast_node)
-# pprint(schema)
-pprint(parsed_schema)
+if __name__ == "__main__":
+    schema = fetch_graphql_schema("https://countries.trevorblades.com/")
+    # schema = fetch_graphql_schema("https://graphql.canopyapi.co/")
+    # schema = fetch_graphql_schema("https://beta.pokeapi.co/graphql/v1beta")
+    parsed_schema = parse_graphql_schema(schema)
+    pprint(parsed_schema)
