@@ -1,80 +1,73 @@
-# query_generator.py
-def generate_graphql_query(intent, resource, fields, resource_conditions, field_conditions, schema):
+def generate_graphql_query(intent, resource, fields, condition_value_dict, schema):
+    """
+    Generates a GraphQL query dynamically, supporting:
+    - Resource-based filters: resource(filter: { field: { eq: "value" } })
+    - Direct field filters: resource(field: "value")
+    - Nested fields
+    - Modular handling based on schema
+
+    Args:
+        intent (str): The intent of the query (e.g., "fetch", "get").
+        resource (str): The resource to query (e.g., "countries", "country").
+        fields (list): The fields to retrieve (e.g., ["name", "currency"]).
+        condition_value_dict (dict): A dictionary of conditions and values.
+        schema (dict): The GraphQL schema to determine field types.
+
+    Returns:
+        str: A properly formatted GraphQL query.
+    """
+
     if not resource or resource not in schema:
-        raise ValueError(f"Invalid resource: {resource}")
+        raise ValueError("Invalid resource specified.")
 
-    def build_fields(fields_list, current_resource):
+    def build_fields(fields_list):
+        """Builds field selection string, handling nested objects."""
         field_strings = []
-        resource_info = schema[current_resource]
-
         for field in fields_list:
-            field_type = resource_info["fields"].get(field)
-            if not field_type:
-                continue
+            if field in schema[resource]["fields"]:
+                field_type = schema[resource]["fields"][field]
+                if isinstance(field_type, dict):  # Nested object
+                    nested_fields = [k for k, v in field_type.items() if v != "[Circular Reference]"]
+                    nested_fields_str = " ".join(nested_fields)
+                    field_strings.append(f"{field} {{ {nested_fields_str} }}")
+                else:
+                    field_strings.append(field)
+        return " ".join(field_strings)
 
-            if field in resource_info["fields"] and field_type in schema:
-                nested_fields = get_default_fields(field_type)
-                field_strings.append(f"{field} {{ {nested_fields} }}")
-            else:
-                field_strings.append(field)
+    def build_conditions(conditions):
+        """Recursively builds condition strings from the dictionary."""
+        condition_parts = []
+        for key, value in conditions.items():
+            if isinstance(value, dict):  # Nested condition (e.g., filter: { continent: { eq: "AF" } })
+                nested_condition = build_conditions(value)
+                condition_parts.append(f"{key}: {{ {nested_condition} }}")
+            else:  # Direct condition (e.g., code: "AF")
+                condition_parts.append(f'{key}: "{value}"')
+        return ", ".join(condition_parts)
 
-        # TODO: FIX THIS
-        if len(field_strings) == 0:
-            return "name"
+    # Determine the argument key for filtering (e.g., "filter", "where")
+    condition_keys = schema[resource].get("arguments", {}).keys()
+    condition_arg = next((key for key in condition_keys if isinstance(schema[resource]["arguments"][key], dict)), None)
+
+    # Build condition string
+    condition_str = ""
+    if condition_value_dict:
+        if condition_arg and condition_arg in condition_value_dict:
+            nested_condition_str = build_conditions(condition_value_dict[condition_arg])
+            condition_str = f'({condition_arg}: {{ {nested_condition_str} }})'
         else:
-            return " ".join(field_strings)
+            # Direct field filter case
+            condition_str = f'({build_conditions(condition_value_dict)})'
 
-    def get_default_fields(resource_type):
-        if resource_type not in schema:
-            return "id name"
+    # Build final query
+    fields_str = build_fields(fields)
 
-        default_fields = []
-        for field, field_type in schema[resource_type]["fields"].items():
-            if field_type not in schema:
-                default_fields.append(field)
-                if len(default_fields) >= 3:
-                    break
-        return " ".join(default_fields)
+    query = f"""
+    {{
+        {resource}{condition_str} {{
+            {fields_str}
+        }}
+    }}
+    """
 
-    # Build filter conditions
-    filter_args = []
-
-    if resource_conditions:
-        filter_dict = {}
-        for condition in resource_conditions:
-            field = condition["field"]
-            value = condition["value"]
-
-            if "filters" in schema[resource] and "filter" in schema[resource]["filters"]:
-                filter_dict[field] = {"eq": value}
-            else:
-                field_conditions.append(condition)
-
-        if filter_dict:
-            filter_str = "filter: {"
-            for field, ops in filter_dict.items():
-                filter_str += f"{field}: {{"
-                for op, val in ops.items():
-                    filter_str += f'{op}: "{val}"'
-                filter_str += "}"
-            filter_str += "}"
-            filter_args.append(filter_str)
-
-    if field_conditions:
-        for condition in field_conditions:
-            field = condition["field"]
-            value = condition["value"]
-            filter_args.append(f'{field}: "{value}"')
-
-    args_str = f'({", ".join(filter_args)})' if filter_args else ""
-    fields_str = build_fields(fields, resource)
-    if not fields_str:
-        fields_str = get_default_fields(resource)
-
-    query = f"""query {{
-              {resource}{args_str} {{
-                {fields_str}
-                  }}
-                }}"""
-
-    return query
+    return query.strip()

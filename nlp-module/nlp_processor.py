@@ -1,3 +1,5 @@
+from collections.abc import Mapping
+
 import spacy
 from nltk.corpus import wordnet
 import nltk
@@ -6,166 +8,210 @@ nlp = spacy.load("en_core_web_md")
 nltk.download('wordnet')
 nltk.download('omw-1.4')
 
+def merge_dicts(dict1, dict2):
+    """ Recursively merge two dictionaries. """
+    for key, value in dict2.items():
+        if key in dict1 and isinstance(dict1[key], dict) and isinstance(value, Mapping):
+            merge_dicts(dict1[key], value)
+        else:
+            dict1[key] = value
+    return dict1
 
 def get_synonyms(word):
     """Get synonyms for a word using WordNet."""
     synonyms = set()
     for syn in wordnet.synsets(word):
         for lemma in syn.lemmas():
-            synonyms.add(lemma.name())
+            synonyms.add(lemma.name().replace("_", " "))
     return list(synonyms)
 
-
-def normalize_term(term):
-    """Normalize a term using spaCy's lemmatization."""
-    return nlp(term)[0].lemma_
-
-
-def normalize_schema(schema):
-    """
-    Normalize only the entity names in the schema, keeping original field names.
-    """
-    normalized_schema = {}
-
-    for entity, details in schema.items():
-        normalized_entity = normalize_term(entity)
-
-        normalized_schema[normalized_entity] = {
-            "original": entity,
-            "fields": details["fields"],  # Keep original field names
-            "filters": details.get("filters", {}),  # Keep original filter names
-            "return_type": details["return_type"]
-        }
-
-    return normalized_schema
-
-
-def extract_intent_and_entities(query, schema, normalized_schema):
-    """
-    Extract intent and entities from the query.
-    Now handles conditional splitting and better field extraction.
-    """
-    # Define conditional prepositions
-    condition_prepositions = ["in", "with", "by", "for"]
-
-    # Split query into main part and condition part
-    main_query = query
-    condition_query = ""
-
-    # Find the first condition preposition and split
-    tokens = query.split()
-    for i, token in enumerate(tokens):
-        if token.lower() in condition_prepositions:
-            main_query = " ".join(tokens[:i])
-            condition_query = " ".join(tokens[i + 1:])  # Skip the preposition
-            break
-
-    # Process main query with spaCy
-    doc_main = nlp(main_query.lower())
-
-    # Detect intent
+def advanced_intent_detection(doc_main):
+    """Detect user intent with expanded vocabulary."""
     intent_synonyms = {
         "fetch": get_synonyms("get") + get_synonyms("fetch") + get_synonyms("find") + get_synonyms("list"),
-        "filter": get_synonyms("filter") + get_synonyms("search") + get_synonyms("where"),
+        "filter": get_synonyms("filter") + get_synonyms("search") + get_synonyms("where") + ["show me", "display"],
     }
 
-    intent = None
     for token in doc_main:
         for intent_type, synonyms in intent_synonyms.items():
             if token.text in synonyms:
-                intent = intent_type
-                break
-        if intent:
+                return intent_type
+    return "fetch"  # Default intent
+
+def split_request_and_condition(query):
+    """
+    Split a user query into the request part and the condition part.
+    """
+    # Process the query with spaCy
+    doc = nlp(query.lower())
+
+    # Prepositions that typically introduce conditions
+    condition_prepositions = {"with", "by", "where"}
+
+    # Find the first preposition that introduces the condition
+    split_index = None
+    for token in doc:
+        if token.text in condition_prepositions:
+            split_index = token.i
             break
 
-    if not intent:
-        intent = "fetch"  # Default intent
+    # Split the query into request and condition
+    if split_index is not None:
+        request = doc[:split_index].text
+        condition = doc[split_index + 1:].text
+    else:
+        request = query
+        condition = ""
 
-    # Extract resource
+    return request, condition
+
+def extract_resource_and_fields(doc_main, schema):
+    """Identify resources and fields in user query."""
     resource = None
+    mentioned_fields = {}
+
     for token in doc_main:
+        # Check if token matches any resource in the schema
         if token.text in schema:
             resource = token.text
             break
 
-    if not resource:
-        raise ValueError("Could not identify a valid resource in the query")
+    if resource:
+        # Collect fields mentioned in the query
+        all_fields = list(schema[resource]["fields"].keys())
+        doc_main_str = doc_main.text.lower()
 
-    # Get all available fields for the resource
-    normalized_resource = normalize_term(resource)
-    all_fields = list(schema[resource]["fields"].keys())  # Use original schema instead of normalized
+        for field in all_fields:
+            if field.lower() in doc_main_str:
+                if isinstance(schema[resource]["fields"][field], dict):
+                    # remove the keys that have [Circular Reference] as value
+                    filtered_fields = {k: v for k, v in schema[resource]["fields"][field].items() if v != "[Circular Reference]"}
+                    mentioned_fields[field] = list(filtered_fields.keys())
+                else:
+                    mentioned_fields[field] = None
 
-    # Extract specifically mentioned fields from main query
-    mentioned_fields = []
-    doc_main_str = doc_main.text.lower()
+        if not mentioned_fields:
+            for field in all_fields:
+                if isinstance(schema[resource]["fields"][field], dict):
+                    # remove the keys that have [Circular Reference] as value
+                    filtered_fields = {k: v for k, v in schema[resource]["fields"][field].items() if
+                                       v != "[Circular Reference]"}
+                    mentioned_fields[field] = list(filtered_fields.keys())
+                else:
+                    mentioned_fields[field] = None
 
-    for field in all_fields:
-        if field.lower() in doc_main_str:
-            mentioned_fields.append(field)
+    return resource, mentioned_fields
 
-    # Use mentioned fields if any were found, otherwise use all fields
-    fields = mentioned_fields if mentioned_fields else all_fields
 
-    # Process conditions if they exist
-    resource_conditions = []
-    field_conditions = []
+def find_key_path(dictionary, target_key, path=None):
+    if path is None:
+        path = []
 
-    if condition_query:
-        doc_condition = nlp(condition_query.lower())
-        tokens = [token for token in doc_condition]
+    if isinstance(dictionary, dict):
+        if target_key in dictionary:
+            return path + [target_key]
 
-        for i, token in enumerate(tokens):
-            # Check if current token is a filter field
-            normalized_token = normalize_term(token.text)
+        for key, value in dictionary.items():
+            new_path = find_key_path(value, target_key, path + [key])
+            if new_path is not None:
+                return new_path
+    return None
 
-            # Try to get the next token as the value
-            next_value = None
-            if i + 1 < len(tokens):
-                next_value = tokens[i + 1].text.upper()  # Keep the value in its original form
+def build_nested_dict(keys, value):
+    """
+    Build a nested dictionary from a list of keys and a value.
+    Example:
+        keys = ["filter", "code", "eq"]
+        value = "US"
+        Output: {"filter": {"code": {"eq": "US"}}}
+    """
+    nested_dict = {}
+    current_level = nested_dict
 
-            if next_value:
-                # Check for resource-based conditions
-                if resource in schema and token.text in schema[resource]["fields"]:
-                    resource_conditions.append({
-                        "field": token.text,
-                        "value": next_value
-                    })
-                # Check for field-based conditions
-                elif resource:
-                    if "filter" in schema[resource]["filters"]:
-                        filter_fields = schema[resource]["filters"]["filter"]
-                        # Check if the normalized token matches any filter field
-                        if normalized_token in [normalize_term(f) for f in filter_fields]:
-                            field_conditions.append({
-                                "field": token.text,
-                                "value": next_value
-                            })
+    # Iterate through the keys and build the nested structure
+    for key in keys[:-1]:  # All keys except the last one
+        current_level[key] = {}
+        current_level = current_level[key]
 
-    # if condition_query:
-    #     doc_condition = nlp(condition_query.lower())
-    #
-    #     # Extract values after prepositions
-    #     for token in doc_condition:
-    #         if token.text in condition_prepositions:
-    #             # Look at the next tokens for values
-    #             next_token = token.nbor(1) if token.i + 1 < len(doc_condition) else None
-    #             if next_token:
-    #                 # Check if it matches any filter fields
-    #                 normalized_token = normalize_term(next_token.text)
-    #
-    #                 # Check for resource-based conditions
-    #                 if normalized_token in schema:
-    #                     resource_conditions.append({
-    #                         "field": normalized_schema[normalized_token]["original"],
-    #                         "value": next_token.text
-    #                     })
-    #                 # Check for field-based conditions
-    #                 elif resource:
-    #                     field_filters = normalized_schema[normalized_resource]["filters"]
-    #                     for filter_field in field_filters:
-    #                         if normalize_term(filter_field) == normalized_token:
-    #                             field_conditions.append({
-    #                                 "field": filter_field,
-    #                                 "value": next_token.text
-    #                             })
-    return intent, resource, fields, resource_conditions, field_conditions
+    # Add the final key-value pair
+    current_level[keys[-1]] = value
+
+    return nested_dict
+
+
+def extract_conditions(doc_main, schema, resource):
+    """
+    Extracts conditions from a user query based on the schema.
+    Supports multiple key paths for each field mentioned in the subquery.
+    """
+    tokens = [token.text for token in doc_main]
+    condition_value_dict = {}
+
+    # Collect all key paths
+    key_paths = []
+    for token in doc_main:
+        if token.text in schema[resource]["fields"]:
+            key_path = find_key_path(schema[resource]["arguments"], token.text)
+            if key_path:
+                key_paths.append(key_path)  # Store multiple paths
+
+    if resource and resource in schema:
+        filter_mapping = schema[resource].get("arguments", {})
+
+        for key_path in key_paths:
+            temp_filter_mapping = filter_mapping  # Reset filter mapping for each key_path
+
+            # Navigate through key_path
+            for key in key_path[:-1]:
+                if key in temp_filter_mapping:
+                    temp_filter_mapping = temp_filter_mapping[key]
+
+            last_key = key_path[-1]
+
+            for token in doc_main:
+                normalized_token = token.lemma_.lower()
+
+                matched_filter = None
+                for filter_key in temp_filter_mapping:
+                    if normalized_token == filter_key or normalized_token in get_synonyms(filter_key):
+                        matched_filter = filter_key
+                        break
+
+                if matched_filter:
+                    condition_value = None
+                    operator = None
+
+                    if isinstance(temp_filter_mapping[matched_filter], dict):
+                        operator = list(temp_filter_mapping[matched_filter].keys())[0]
+
+                    # Append operator if available
+                    full_key_path = key_path + [operator] if operator else key_path
+
+                    # Extract condition value
+                    for child in token.children:
+                        if child.dep_ in {"attr", "prep", "dobj", "pobj"} or child.pos_ in {"NUM", "NOUN", "PROPN"}:
+                            condition_value = child.text
+                            break
+
+                    # Check named entities (like country codes)
+                    if not condition_value:
+                        for ent in doc_main.ents:
+                            if ent.start == token.i + 1:
+                                condition_value = ent.text
+                                break
+
+                    # Append only if we got a value
+                    if condition_value:
+                        temp_dict = build_nested_dict(full_key_path, condition_value)
+                        condition_value_dict = merge_dicts(condition_value_dict, temp_dict)
+
+    return condition_value_dict
+
+def extract_resource_fields_and_conditions(doc_main, schema):
+    """Extract resources, fields, and conditions from user query."""
+    request, condition = split_request_and_condition(doc_main.text)
+    doc_request = nlp(request)
+    doc_condition = nlp(condition)
+    resource, fields = extract_resource_and_fields(doc_request, schema)
+    condition_value_dict = extract_conditions(doc_condition, schema, resource)
+    return resource, fields, condition_value_dict

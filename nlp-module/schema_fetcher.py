@@ -230,7 +230,7 @@ def parse_graphql_schema(schema):
 
 # Assuming `schema` is the result from fetch_graphql_schema(api_url)
 schema = fetch_graphql_schema("https://countries.trevorblades.com/")
-# schema = fetch_graphql_schema("https://www.universe.com/graphql")
+# schema = fetch_graphql_schema("https://graphql.canopyapi.co/")
 # schema = fetch_graphql_schema("https://beta.pokeapi.co/graphql/v1beta")
 parsed_schema = parse_graphql_schema(schema)
 # parse_schema2 = parse_schema(schema)
