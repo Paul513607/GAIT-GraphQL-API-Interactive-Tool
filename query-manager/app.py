@@ -4,7 +4,6 @@ from fastapi import FastAPI, HTTPException
 import requests
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-
 from api_data import Api, apis
 
 app = FastAPI()
@@ -16,7 +15,6 @@ app.add_middleware(
     allow_methods=["*"], 
     allow_headers=["*"],  
 )
-
 
 class QueryRequest(BaseModel):
     api_url: str  # The GraphQL API URL
@@ -56,3 +54,4 @@ async def generate_graphql_query(request: QueryRequest):
 @app.get("/apis", response_model=List[Api])
 async def get_apis():
     return apis
+
