@@ -1,46 +1,33 @@
-# main.py
-from nlp_processor import normalize_schema, extract_intent_and_entities
-from query_generator import generate_graphql_query
-from schema_fetcher import fetch_graphql_schema, parse_schema
+from flask import Flask, request, jsonify
 
+from openai_model import openai_model
+from nlp_custom_model import nlp_main
 
-def main():
-    # Step 1: Fetch and parse schema
-    # api_url = "https://www.universe.com/graphql"
-    api_url = "https://countries.trevorblades.com/"
-    schema = fetch_graphql_schema(api_url)
-    parsed_schema = parse_schema(schema)
-    normalized_schema = normalize_schema(parsed_schema)
+app = Flask(__name__)
 
-    while True:
+@app.route('/generate_query', methods=['GET'])
+def generate_query():
+    api_url = request.args.get('api_url')
+    user_input = request.args.get('user_input')
+    model = request.args.get('model')
+
+    if not api_url or not user_input or not model:
+        return jsonify({"error": "Missing required parameters"}), 400
+    if model == "openai":
         try:
-            # Step 2: Get user input
-            user_query = input("\nEnter your query (or 'quit' to exit): ")
-            if user_query.lower() == 'quit':
-                break
-
-            # Step 3: Process the query
-            intent, resource, fields, resource_conditions, field_conditions = extract_intent_and_entities(
-                user_query, parsed_schema, normalized_schema
-            )
-
-            # Step 4: Generate the query
-            query = generate_graphql_query(
-                intent, resource, fields, resource_conditions, field_conditions, parsed_schema
-            )
-
-            print("\nGenerated GraphQL Query:")
-            print(query)
-
-            # Step 5: Execute the query (optional)
-            # response = requests.post(api_url, json={'query': query})
-            # print("\nResponse:")
-            # print(json.dumps(response.json(), indent=2))
-
-        except ValueError as e:
-            print(f"\nError: {e}")
+            query = openai_model.generate_graphql_query(api_url, user_input)
+            return jsonify({"query": query})
         except Exception as e:
-            print(f"\nUnexpected error: {e}")
+            return jsonify({"error": str(e)}), 500
+    elif model == "custom":
+        try:
+            query = nlp_main.get_graphql_query(api_url, user_input)
+            if not query:
+                return jsonify({"error": "Resource not recognized. Please try again."}), 400
+            return jsonify({"query": query})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
 
 if __name__ == "__main__":
-    main()
+    app.run(debug=True)
