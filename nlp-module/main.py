@@ -1,5 +1,3 @@
-import os
-
 from flask import Flask, request, jsonify
 
 from openai_model import openai_model

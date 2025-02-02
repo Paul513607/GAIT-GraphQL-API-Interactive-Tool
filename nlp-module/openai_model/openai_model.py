@@ -1,12 +1,6 @@
-import requests
 from openai import OpenAI
 import os
 
-from flask import Flask, request, jsonify
-from dotenv import load_dotenv
-from gql import gql, Client
-from gql.transport.aiohttp import AIOHTTPTransport
-from gql.transport.requests import RequestsHTTPTransport
 from dotenv import load_dotenv
 
 from common.schema_fetcher import fetch_graphql_schema
