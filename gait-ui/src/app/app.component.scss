@@ -11,6 +11,7 @@
   --gray-900: oklch(19.37% 0.006 300.98);
   --gray-700: oklch(36.98% 0.014 302.71);
   --gray-400: oklch(70.9% 0.015 304.04);
+  --gray-100: oklch(90.9% 0.02 304.04);
 
   --red-to-pink-to-purple-vertical-gradient: linear-gradient(
     180deg,
@@ -46,6 +47,20 @@
     (
       outlined-caret-color: var(--bright-blue),
       outlined-focus-outline-color: var(--bright-blue),
+    )
+  );
+
+  @include mat.progress-spinner-overrides(
+    (
+      active-indicator-color: var(--bright-blue),
+      size: 20px,
+    )
+  );
+
+  @include mat.button-overrides(
+    (
+      filled-container-color: var(--bright-blue),
+      filled-label-text-color: var(--gray-100),
     )
   );
 }
