@@ -1,15 +1,52 @@
-<h1>GraphQL API Interactive Tool</h1>
 <div class="container">
   <div class="content">
+    <div class="flex-row">
+      <h1>{{ title }}</h1>
+    </div>
     <div class="flex-row panels">
+      <ng-container
+        *ngTemplateOutlet="
+          buildingQuery() ? loading : container;
+          context: {
+            $implicit: queryStream$ | async,
+            options: queryEditorOptions
+          }
+        "
+      ></ng-container>
+      <ng-container
+        *ngTemplateOutlet="
+          fetchingResult() ? loading : container;
+          context: {
+            $implicit: resultStream$ | async,
+            options: resultEditorOptions
+          }
+        "
+      ></ng-container>
+    </div>
+    <div class="flex-row">
       <mat-form-field>
-        <mat-label>The GraphQL Query</mat-label>
-        <textarea matInput cdkTextareaAutosize></textarea>
+        <mat-label>Model</mat-label>
+        <mat-select [(value)]="selectedModel">
+          @for (model of models; track model) {
+          <mat-option [value]="model">{{ model }}</mat-option>
+          }
+        </mat-select>
       </mat-form-field>
       <mat-form-field>
-        <mat-label>The Response</mat-label>
-        <textarea readonly="true" matInput cdkTextareaAutosize></textarea>
+        <mat-label>Api</mat-label>
+        <mat-select [(value)]="selectedApi">
+          <mat-option [value]="api.url" *ngFor="let api of apis$ | async">{{
+            api.name
+          }}</mat-option>
+        </mat-select>
       </mat-form-field>
+      <button
+        mat-flat-button
+        (click)="sendQuery()"
+        [disabled]="!sendQueryEnabled()"
+      >
+        Send query
+      </button>
     </div>
     <div class="flex-row">
       <mat-form-field>
@@ -19,14 +56,26 @@
           #autosize="cdkTextareaAutosize"
           cdkAutosizeMinRows="1"
           cdkAutosizeMaxRows="5"
+          [(ngModel)]="naturalLanguageQuery"
         ></textarea>
         <button mat-icon-button matSuffix>
-          <mat-icon>send</mat-icon>
+          <mat-icon (click)="generateQuery()">send</mat-icon>
         </button>
         <mat-hint align="start"
-          >Check docs for info about using this tool</mat-hint
+          >Type a query in natural language and the tool will generate a GraphQL
+          query</mat-hint
         >
       </mat-form-field>
     </div>
   </div>
 </div>
+<ng-template #loading>
+  <div class="spinner"><mat-spinner></mat-spinner></div>
+</ng-template>
+<ng-template #container let-options="options" let-content>
+  <ngx-codemirror
+    [options]="options"
+    [ngModel]="content"
+    (ngModelChange)="queryModel.set($event)"
+  ></ngx-codemirror>
+</ng-template>

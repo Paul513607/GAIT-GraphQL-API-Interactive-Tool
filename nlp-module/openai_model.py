@@ -99,6 +99,7 @@ def generate_query():
     try:
         query = generate_graphql_query(api_url, user_input)
         return jsonify({"query": query})
+        # return jsonify({"query": "```graphql\nquery {\n  countries(filter: {continent: {eq: \"EU\"}}) {\n    code\n    name\n    capital\n    awsRegion\n    currency\n    emoji\n    languages {\n      code\n      name\n      native\n    }\n    states {\n      code\n      name\n    }\n  }\n}\n```"})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
