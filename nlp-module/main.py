@@ -1,7 +1,9 @@
-from flask import Flask, request, jsonify
+from flask import Flask, Response, request, jsonify
 
+from common.schema_fetcher import fetch_graphql_schema
 from openai_model import openai_model
 from nlp_custom_model import nlp_main
+from rdf.rdf_processor import convert_schema_to_rdf
 
 app = Flask(__name__)
 
@@ -28,6 +30,20 @@ def generate_query():
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+
+@app.route('/generate_rdf', methods=['GET'])
+def generate_rdf():
+    api_url = request.args.get('api_url')
+
+    if not api_url:
+        return jsonify({"error": "Missing required parameter: api_url"}), 400
+
+    try:
+        schema = fetch_graphql_schema(api_url)
+        rdf_data = convert_schema_to_rdf(schema)
+        return Response(rdf_data, mimetype="text/turtle")
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

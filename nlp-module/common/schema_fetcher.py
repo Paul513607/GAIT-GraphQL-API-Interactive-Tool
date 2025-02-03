@@ -57,7 +57,7 @@ def fetch_graphql_schema(api_url):
     client = Client(transport=transport, fetch_schema_from_transport=True)
 
     result = client.execute(query)
-    return client.schema
+    return result["__schema"]
 
 
 def extract_fields(graphql_type, visited_types=None):
