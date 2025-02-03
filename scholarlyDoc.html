@@ -1070,6 +1070,18 @@
           run on an Elastic Container Service (ECS)
           cluster for scalability and reliability.
         </p>
+        <p>
+          In order to deploy, we ran the following commands for each module:
+          docker-compose build
+          aws ecr get-login-password --region *region* | docker login --username AWS --password-stdin *account-id*.dkr.ecr.*region*.amazonaws.com
+          docker tag *image-id* *account-id*.dkr.ecr.*region*.amazonaws.com/*image-name*
+          -- Create the repository on ECR
+          docker push *account-id*.dkr.ecr.*region*.amazonaws.com/*image-name*
+          -- Create the ECS cluster
+          -- Create the task definition
+          -- Create the service
+          -- Update security group (if needed)
+        </p>
       </section>
     </article>
   </body>
