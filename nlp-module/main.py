@@ -16,10 +16,8 @@ api = Api(app, title="GAIT API", description="A GraphQL Query Generator API", ve
 
 ns = api.namespace("apis", description="Query Endpoints")
 
-# Namespace for GraphQL RDF
 GRAPHQL = Namespace("http://example.org/graphql#")
 
-# Define models for Swagger documentation
 query_model = api.model(
     "QueryInput",
     {
@@ -39,7 +37,6 @@ query_response_model = api.model(
 
 last_api_url = None
 
-# Endpoint to generate a GraphQL query
 @ns.route('/generate_query')
 class GenerateQuery(Resource):
     @api.expect(query_model)
@@ -68,7 +65,6 @@ class GenerateQuery(Resource):
         except Exception as e:
             return {"error": str(e)}, 500
 
-# Endpoint to generate RDF data from a GraphQL schema
 @ns.route('/generate_rdf')
 class GenerateRDF(Resource):
     @api.doc(params={"api_url": "GraphQL API URL"})
@@ -87,7 +83,6 @@ class GenerateRDF(Resource):
         except Exception as e:
             return {"error": str(e)}, 500
 
-# Endpoint to list all entities (types) in the schema as URIs
 @ns.route('/entities')
 class Entities(Resource):
     @api.doc(params={"api_url": "GraphQL API URL"})
@@ -95,6 +90,7 @@ class Entities(Resource):
         global last_api_url
         api_url = request.args.get('api_url')
         last_api_url = api_url
+        base_url = request.host_url.rstrip("/")
 
         if not api_url:
             api_url = last_api_url
@@ -105,7 +101,6 @@ class Entities(Resource):
             _, schema = fetch_graphql_schema(api_url)
             graph = convert_schema_to_rdf(schema)
 
-            # SPARQL query to find all entities (classes)
             query = prepareQuery(
                 """
                 SELECT ?entity WHERE {
@@ -116,7 +111,7 @@ class Entities(Resource):
 
             entities = [
                 {
-                    "uri": f"http://localhost:5000/apis/entities/{str(row.entity).split('#')[-1]}",
+                    "uri": f"{base_url}/apis/entities/{str(row.entity).split('#')[-1]}",
                 }
                 for row in graph.query(query)
             ]
@@ -124,13 +119,13 @@ class Entities(Resource):
         except Exception as e:
             return {"error": str(e)}, 500
 
-# Endpoint to list all fields for a specific entity
 @ns.route('/entities/<string:entity_name>')
 class Fields(Resource):
     @api.doc(params={"api_url": "GraphQL API URL"})
     def get(self, entity_name):
         global last_api_url
         api_url = request.args.get('api_url')
+        base_url = request.host_url.rstrip("/")
 
         if not api_url:
             api_url = last_api_url
@@ -141,7 +136,7 @@ class Fields(Resource):
             _, schema = fetch_graphql_schema(api_url)
             for gql_type in schema["types"]:
                 if gql_type["name"] == entity_name and gql_type["kind"] == "OBJECT":
-                    fields = [f"uri: http://localhost:5000/apis/entities/{entity_name}/{field['name']}" for field in gql_type.get("fields", [])]
+                    fields = [f"uri: {base_url}/apis/entities/{entity_name}/{field['name']}" for field in gql_type.get("fields", [])]
                     return {"entity": entity_name, "fields": fields}
             return {"error": f"Entity '{entity_name}' not found"}, 404
         except Exception as e:
