@@ -1,3 +1,5 @@
+from pprint import pprint
+
 from nlp_custom_model.nlp_processor import nlp, advanced_intent_detection, \
     extract_resource_fields_and_conditions
 from nlp_custom_model.query_generator import generate_graphql_query
@@ -14,7 +16,7 @@ def get_graphql_query(api_url, user_query):
 
     if resource:
         query = generate_graphql_query(intent, resource, fields, condition_value_dict, parsed_schema)
-        print("\nGenerated GraphQL Query:", query)
+        # print("\nGenerated GraphQL Query:", query)
         return query
     else:
         print("Resource not recognized. Please try again.")
@@ -22,6 +24,6 @@ def get_graphql_query(api_url, user_query):
 
 
 if __name__ == "__main__":
-    api_url = "https://countries.trevorblades.com/"
-    user_query = "get country with code AF"
+    api_url = "https://api.tcgdex.net/v2/graphql"
+    user_query = "get serie logo where name Platinum"
     get_graphql_query(api_url, user_query)

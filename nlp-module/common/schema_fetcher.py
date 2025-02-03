@@ -146,8 +146,8 @@ def parse_graphql_schema(schema):
 
 
 if __name__ == "__main__":
-    # schema = fetch_graphql_schema("https://countries.trevorblades.com/")
-    # schema = fetch_graphql_schema("https://portal.ehri-project.eu/api/graphql")
-    schema = fetch_graphql_schema("https://api.tcgdex.net/v2/graphql")
-    parsed_schema, _ = parse_graphql_schema(schema)
+    # schema, _ = fetch_graphql_schema("https://countries.trevorblades.com/")
+    # schema, _ = fetch_graphql_schema("https://portal.ehri-project.eu/api/graphql")
+    schema, _ = fetch_graphql_schema("https://api.tcgdex.net/v2/graphql")
+    parsed_schema = parse_graphql_schema(schema)
     pprint(parsed_schema)
