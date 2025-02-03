@@ -63,7 +63,6 @@ export class ToolComponent {
     matchBrackets: true,
     autoCloseBrackets: true,
     autocorrect: true,
-    lint: true,
   };
   queryEditorOptions = {
     ...this.editorOptions,
