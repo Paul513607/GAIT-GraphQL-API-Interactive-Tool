@@ -71,7 +71,7 @@ class GenerateRDF(Resource):
             return {"error": "Missing required parameter: api_url"}, 400
 
         try:
-            schema = fetch_graphql_schema(api_url)
+            _, schema = fetch_graphql_schema(api_url)
             rdf_data = convert_schema_to_rdf(schema)
             return Response(rdf_data, mimetype="text/turtle")
         except Exception as e:
