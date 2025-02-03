@@ -1,0 +1,6 @@
+[submodule "gait-ui/scholarly-html"]
+	path = gait-ui/scholarly-html
+	url = https://github.com/w3c/scholarly-html
+[submodule "scholarly-html"]
+	path = scholarly-html
+	url = https://github.com/w3c/scholarly-html
