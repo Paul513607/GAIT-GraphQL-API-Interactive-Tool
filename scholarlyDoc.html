@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>GAIT GraphQL API Interaction Tool</title>
+  </head>
+
+  <body
+    prefix="schema: https://schema.org/"
+    prefix="sa:https://ns.science.ai/"
+    itemscope=""
+    itemtype="http://schema.org/WebPage"
+  >
+    <article typeof="schema:ScholarlyArticle">
+      <header>
+        <h1>GAIT GraphQL API Interaction Tool</h1>
+      </header>
+      <div role="contentinfo">
+        <section id="authors" typeof="sa:AuthorsList">
+          <h2>Authors</h2>
+          <ul>
+            <li typeof="sa:ContribuitorRole" property="schema:author">
+              <span typeof="sa:Person">
+                <meta property="schema:givenName" content="Ioan-Paul" />
+                <meta property="schema:familyName" content="Samson" />
+                <span property="schema:name">Ioan-Paul Samson</span>
+              </span>
+              <ul>
+                <li
+                  property="schema:roleContactPoint"
+                  typeof="schema:ContactPoint"
+                >
+                  <a href="mailTo:paul.samson42@gmail.com" property="schema:email"
+                    >paul.samson42@gmail.com</a
+                  >
+                </li>
+              </ul>
+            </li>
+            
+            <li typeof="sa:ContribuitorRole" property="schema:author">
+              <span typeof="sa:Person">
+                <meta property="schema:givenName" content="Vlad" />
+                <meta property="schema:additionalName" content="Iulius" />
+                <meta property="schema:familyName" content="Leahu" />
+                <span property="schema:name">Vlad Iulius Leahu</span>
+              </span>
+              <ul>
+                <li
+                  property="schema:roleContactPoint"
+                  typeof="schema:ContactPoint"
+                >
+                  <a
+                    href="mailTo:leahu.vlad.iulius@gmail.com"
+                    property="schema:email"
+                    >leahu.vlad.iulius@gmail.com</a
+                  >
+                </li>
+              </ul>
+            </li>
+          </ul>
+        </section>
+      </div>
+      <section id="table-of-contents">
+        <h2>Table of contents</h2>
+        <ul>
+          <li>
+            <a href="#authors">Authors</a>
+          </li>
+          <li>
+            <a href="#introduction">1. Introduction</a>
+            <ul>
+              <li><a href="#introduction-purpose">1.1 Purpose</a></li>
+              <li><a href=" #conventions">1.2 Document Conventions</a></li>
+              <li>
+                <a href="#audience"
+                  >1.3 Intended Audience and Reading Suggestions</a
+                >
+              </li>
+              <li><a href="#product-scope">1.4 Product Scope</a></li>
+              <li><a href="#product-references">1.5 References</a></li>
+            </ul>
+          </li>
+          <li>
+            <a href="#overall">2. Overall Description</a>
+            <ul>
+              <li>
+                <a href="#product-perspective">2.1 Product Perspective</a>
+              </li>
+              <li><a href="#product-functions">2.2 Product Functions</a></li>
+              <li><a href="#users">2.3 User Classes and Characteristics</a></li>
+              <li>
+                <a href="#operating-environment">2.4 Operating Environment</a>
+              </li>
+              <li>
+                <a href="#constraints"
+                  >2.5 Design and Implementation Constraints</a
+                >
+              </li>
+              <li><a href="#documentantion">2.6 User Documentation</a></li>
+              <li>
+                <a href="#dependencies">2.7 Assumptions and Dependencies</a>
+              </li>
+            </ul>
+          </li>
+          <li>
+            <a href="#external">3. External Interface Requirements</a>
+            <ul>
+              <li>
+                <a href="#user-interface">3.1 User Interfaces</a>
+                <ul>
+                  <li>
+                    <a href="#landing-page">3.1.1 Landing Page</a>
+                  </li>
+                </ul>
+              </li>
+              <li><a href="#hardware-interface">3.2 Hardware Interfaces</a></li>
+              <li><a href="#software-interface">3.3 Software Interfaces</a></li>
+              <li>
+                <a href="#communications-interface"
+                  >3.4 Communications Interfaces</a
+                >
+              </li>
+            </ul>
+          </li>
+          <li>
+            <a href="#system-features">4. System Features</a>
+            <ul>
+              <li>
+                <a href="#frontend-feature">4.1 Frontend Module</a>
+              </li>
+              <li>
+                <a href="#backend-feature">4.2 Backend Module</a>
+              </li>
+              <li>
+                <a href="#nlp-feature">4.3 NLP Module</a>
+              </li>
+            </ul>
+          </li>
+          <li>
+            <a href="#non-functional">5. Other Nonfunctional Requirements</a>
+            <ul>
+              <li><a href="#performance">5.1 Performance Requirements</a></li>
+              <li><a href="#safety">5.2 Safety Requirements</a></li>
+              <li><a href="#security">5.3 Security Requirements</a></li>
+              <li><a href="#software">5.4 Software Quality Attributes</a></li>
+              <li><a href="#buisness">5.5 Buisness Rules</a></li>
+            </ul>
+          </li>
+          <li>
+            <a href="#other-requirements">Other Requirements</a>
+          </li>
+        </ul>
+      </section>
+      <section typeof="sa:Abstract" role="doc-introduction" id="introduction">
+        <h2>1. Introduction</h2>
+        <section id="introduction-purpose">
+          <h3>1.1 Purpose</h3>
+          <p>
+            This document specifies the requirements for the GAIT GraphQL API Interaction Tool, a system designed to facilitate user interaction with GraphQL APIs through a frontend interface, a backend processing module, and an NLP module for query generation. The system allows users to submit queries, which are processed and enhanced using natural language processing techniques.
+          </p>
+        </section>
+
+        <section id="conventions">
+          <h3>1.2 Document Conventions</h3>
+          <ul>
+            <li>
+              The document is based on the template
+              <cite typeof="citation">
+                <a href="https://github.com/rick4470/IEEE-SRS-Tempate">
+                  IEEE System Requirements Specification Template
+                </a> </cite
+              >.
+            </li>
+            <li>
+              This document repects the
+              <cite typeof="citation"
+                ><a href="https://w3c.github.io/scholarly-html/"
+                  >Scholarly HTML specification</a
+                ></cite
+              >
+            </li>
+            <li>
+              Priorities for higher-level requirements are assumed to be
+              inherited by detailed requirements.
+            </li>
+            <li>Citations are specified in italics.</li>
+            <li>
+              References to the elements of a web page use a
+              <code>code-like</code> font.
+            </li>
+            <li>Priorities for functionalities are higlighted in bold.</li>
+          </ul>
+        </section>
+        <section id="audience">
+          <h3>1.3 Intended Audience and Reading Suggestions</h3>
+          <p>
+            This document is intended for the development team and for the
+            teachers that are going to be grading the product and documentation.
+            For the first review that is going to take place in the 8th week,
+            the relevant sections are section
+            <a href="#external">3. External Interface Requirements</a> and
+            <a href="#system-features">4. System Features.</a>
+          </p>
+        </section>
+        <section id="product-scope">
+          <h3>1.4 Product Scope</h3>
+          <p>
+            The GAIT GraphQL API Interaction Tool is designed to help users interact with GraphQL APIs by providing a user-friendly interface for query submission, a backend module for processing requests, and an NLP module for generating and optimizing queries. The system supports custom NLP models using spaCy and WordNet, as well as integration with OpenAI for advanced query generation.
+          </p>
+        </section>
+        <section id="product-references" typeof="sa:ReferenceList">
+          <h3>1.5 References</h3>
+          <ul>
+            <li
+              class="ref"
+              typeof="schema:ScholarlyArticle"
+              resource="https://profs.info.uaic.ro/~busaco/teach/courses/web/web-exam.html"
+            >
+              <span property="schema:author" typeof="schema:Person">
+                <span property="schema:familyName">Buraga</span>
+                <span property="schema:givenName">Sabin</span>.
+                <span property="schema:additionalName">Corneliu</span>
+              </span>
+              <cite property="schema:name"
+                >Web Application Development Project Proposals</cite
+              >
+              <span
+                property="schema:isPartOf"
+                typeof="schema:PublicationVolume"
+              >
+                <span property="schema:isPartOf" typeof="schema:Periodical">
+                  <span property="schema:name">FII UAIC Web Application Development.</span>
+                </span>
+              </span>
+            </li>
+            <li
+              class="ref"
+              typeof="schema:ScholarlyArticle"
+              resource="https://github.com/rick4470/IEEE-SRS-Tempate"
+            >
+              <span property="schema:author" typeof="schema:Person">
+                <span property="schema:familyName">H</span>
+                <span property="schema:givenName">Rick</span>.
+              </span>
+              <cite property="schema:name">IEEE-Template.</cite>
+              <span property="schema:isPartOf" typeof="schema:Periodical">
+                <span property="schema:name">GitHub</span>
+              </span>
+            </li>
+            <li
+              class="ref"
+              typeof="schema:ScholarlyArticle"
+              resource="https://w3c.github.io/scholarly-html/"
+            >
+              <span property="schema:author" typeof="schema:Person">
+                <span property="schema:familyName">Siegman</span>
+                <span property="schema:givenName">Tzviya</span>.
+              </span>
+              <span property="schema:author" typeof="schema:Person">
+                <span property="schema:familyName">Berjon</span>
+                <span property="schema:givenName">Robin</span>.
+              </span>
+              <cite property="schema:name">Scholarly HTML Comunity Draft</cite>
+              <span property="schema:isPartOf" typeof="schema:Periodical">
+                <span property="schema:name">Scholarly HTML</span>
+              </span>
+            </li>
+          </ul>
+        </section>
+      </section>
+
+      <section typeof="sa:MaterialsAndMethods" role="doc-chapter" id="overall">
+        <h2>2. Overall Description</h2>
+        <section id="product-perspective">
+          <h3>2.1 Product Perspective</h3>
+          <p>
+            The GAIT GraphQL API Interaction Tool is a self-contained system composed of three main modules:
+          </p>
+          <ul>
+            <li><b>Frontend Module:</b> A single-page Angular application for user interaction.</li>
+            <li><b>Backend Module:</b> A FastAPI-based server that handles user requests and communicates with the NLP module.</li>
+            <li><b>NLP Module:</b> A module for generating and optimizing GraphQL queries using spaCy, WordNet, and OpenAI.</li>
+          </ul>
+          <figure typeof="sa:image" id="subsystems-diagram">
+            <img
+              src="https://via.placeholder.com/800x400"
+              alt="System Architecture Diagram"
+              class="diagram-image"
+            />
+            <figcaption>System Architecture Diagram</figcaption>
+          </figure>
+        </section>
+        <section id="product-functions">
+          <h3>2.2 Product Functions</h3>
+          <ul>
+            <li><b>Frontend Module:</b>
+              <ul>
+                <li>Provides a user interface for submitting queries.</li>
+                <li>Displays results from the backend.</li>
+                <li>Allows the user to query the selected public GraphQL API with the generated queries.</li>
+              </ul>
+            </li>
+            <li><b>Backend Module:</b>
+              <ul>
+                <li>Receives user input and forwards it to the NLP module.</li>
+                <li>Processes and returns query results to the frontend.</li>
+              </ul>
+            </li>
+            <li><b>NLP Module:</b>
+              <ul>
+                <li>Generates GraphQL queries based on user input.</li>
+                <li>Supports custom NLP models (spaCy, WordNet) and OpenAI integration.</li>
+              </ul>
+            </li>
+          </ul>
+        </section>
+        <section id="users">
+          <h3>2.3 User Classes and Characteristics</h3>
+          <p>
+            The primary users of the system are developers and data analysts who need to interact with GraphQL APIs. The system is designed to be intuitive for users with basic technical knowledge.
+          </p>
+        </section>
+
+        <section id="operating-environment">
+          <h3>2.4 Operating Environment</h3>
+          <p>
+            The system is designed to run in a Dockerized environment, with the frontend served on port 4200, the backend on port 5000, and the NLP module on port 8000. It is compatible with modern web browsers and operating systems.
+          </p>
+        </section>
+
+        <section id="constraints">
+          <h3>2.5 Design and Implementation Constraints</h3>
+          <p>
+            The system must adhere to the following constraints:
+          </p>
+          <ul>
+            <li>Use of Docker for containerization.</li>
+            <li>Separation of concerns between frontend, backend, and NLP modules.</li>
+            <li>Integration with OpenAI API for advanced NLP capabilities.</li>
+          </ul>
+        </section>
+
+        <section id="documentantion">
+          <h3>2.6 User Documentation</h3>
+          <p>
+            TODO: Add user documentation details here.
+          </p>
+        </section>
+
+        <section id="dependencies">
+          <h3>2.7 Assumptions and Dependencies</h3>
+          <p>
+            The system relies on the following dependencies:
+          </p>
+          <ul>
+            <li>Angular for the frontend.</li>
+            <li>FastAPI for the backend.</li>
+            <li>spaCy, WordNet, and OpenAI for NLP functionality.</li>
+            <li>Flask for both the backend and the NLP model.</Li>
+            <li>Docker for containerization.</li>
+          </ul>
+        </section>
+      </section>
+
+      <section typeof="sa:MaterialsAndMethods" role="document" id="external">
+        <h2>3. External Interface Requirements</h2>
+        <section id="user-interface">
+          <h3>3.1 User Interface</h3>
+          <p>
+            The frontend module provides a single-page interface for query submission and result visualization. The interface includes:
+          </p>
+          <ul>
+            <li>A query input field.</li>
+            <li>A dropdown for selecting the NLP model (spaCy/WordNet or OpenAI).</li>
+            <li>A dropdown to select one of the supported public GraphQL API.</li>
+            <li>An editable results display area.</li>
+            <li>An editable text area in which the query can be placed and use to query the GraphQL API.</li>
+          </ul>
+          <figure typeof="sa:image" id="landing-img">
+            <img
+              src="https://via.placeholder.com/800x400"
+              alt="Frontend Interface Design"
+              class="interface-image"
+            />
+            <figcaption>Frontend Interface Design</figcaption>
+          </figure>
+        </section>
+        <section id="hardware-interface">
+          <h3>3.2 Hardware Interfaces</h3>
+          <p>
+            The system is designed to run on standard hardware with a modern web browser and internet connectivity.
+          </p>
+        </section>
+        <section id="software-interface">
+          <h3>3.3 Software Interfaces</h3>
+          <p>
+            The system interacts with the following software components:
+          </p>
+          <ul>
+            <li>GraphQL APIs for query execution.</li>
+            <li>OpenAI API for advanced NLP capabilities.</li>
+            <li>Docker for containerization.</li>
+          </ul>
+        </section>
+        <section id="communications-interface">
+          <h3>3.4 Communications Interfaces</h3>
+          <p>
+            The system uses HTTP for communication between the frontend, backend, and NLP modules.
+          </p>
+        </section>
+      </section>
+
+      <section
+        typeof="sa:MaterialsAndMethods"
+        role="document"
+        id="system-features"
+      >
+      <h2>4. System Features</h2>
+      <section id="frontend-feature">
+        <h3>4.1 Frontend Module</h3>
+        <p>
+          The <b>frontend module</b> is a single-page Angular application that allows users to interact with the system. It provides a user-friendly interface for submitting queries, selecting NLP models, viewing results and querying GraphQL APIs.
+        </p>
+        <section id="frontend-functional-requirements">
+          <h4>Functional Requirements</h4>
+          <ul>
+            <li>
+              Users can input a query in natural language through a text field.
+            </li>
+            <li>
+              Users can select the NLP model to use (spaCy/WordNet or OpenAI) from a dropdown menu.
+            </li>
+            <li>
+              The frontend displays the generated GraphQL query and the results returned by the backend.
+            </li>
+            <li>
+              The interface allows the users to select a public GraphQL API to query with the generated query.
+            </li>
+          </ul>
+        </section>
+      </section>
+
+      <section id="backend-feature">
+        <h3>4.2 Backend Module</h3>
+        <p>
+          The <b>backend module</b> is built using FastAPI and acts as the intermediary between the frontend and the NLP module. It handles user requests, processes them, and returns the results.
+        </p>
+        <section id="backend-functional-requirements">
+          <h4>Functional Requirements</h4>
+          <ul>
+            <li>
+              The backend exposes an endpoint (<code>/generate_query</code>) that accepts user input, the selected model, and the target GraphQL API URL.
+            </li>
+            <li>
+              It forwards the user input to the NLP module for query generation.
+            </li>
+            <li>
+              The backend handles errors gracefully and provides meaningful error messages to the frontend.
+            </li>
+          </ul>
+        </section>
+      </section>
+
+      <section id="nlp-feature">
+        <h3>4.3 NLP Module</h3>
+        <p>
+          The <b>NLP module</b> is responsible for generating and optimizing GraphQL queries based on user input. It supports two submodules:
+        </p>
+        <ul>
+          <li>
+            <b>Commons Submodule</b> Used by both NLP submodules to receive the schema through introspection and parse it.
+         </li>
+          <li>
+            <b>Custom NLP Submodule:</b> Uses spaCy and WordNet for query generation.
+          </li>
+          <li>
+            <b>OpenAI Submodule:</b> Leverages OpenAI's advanced NLP capabilities for query generation.
+          </li>
+        </ul>
+        <section id="nlp-functional-requirements">
+          <h4>Functional Requirements</h4>
+          <ul>
+            <li>
+              The NLP module accepts natural language input and generates a corresponding GraphQL query.
+            </li>
+            <li>
+              It supports multiple NLP models, allowing users to choose between spaCy/WordNet and OpenAI.
+            </li>
+            <li>
+              The module optimizes the generated query for efficiency and correctness.
+            </li>
+            <li>
+              The module will fetch the schema from the GraphQL API through introspection and parse to find the queriable entities, fields and conditions.
+            </li>
+          </ul>
+        </section>
+      </section>
+    </section>
+
+    <section
+      typeof="sa:MaterialsAndMethods"
+      role="document"
+      id="non-functional"
+    >
+      <h2>5. Other Nonfunctional Requirements</h2>
+      <section id="performance">
+        <h3>5.1 Performance Requirements</h3>
+        <p>
+          The system should respond to user queries within 5 seconds under normal load conditions. The NLP module should generate queries in under 5 second for most inputs.
+        </p>
+      </section>
+      <section id="safety">
+        <h3>5.2 Safety Requirements</h3>
+        <p>
+          The system should ensure that user data is handled securely and not exposed to unauthorized parties. All API keys (e.g., OpenAI) should be stored securely and not exposed in client-side code.
+        </p>
+      </section>
+
+      <section id="security">
+        <h3>5.3 Security Requirements</h3>
+        <p>
+          The system should implement the following security measures:
+        </p>
+        <ul>
+          <li>
+            Use HTTP for all communications between the frontend, backend, and external APIs.
+          </li>
+          <li>
+            Validate and sanitize all user inputs to prevent injection attacks.
+          </li>
+          <li>
+            Use environment variables to store sensitive information such as API keys.
+          </li>
+        </ul>
+      </section>
+      <section id="software">
+        <h3>5.4 Software Quality Attributes</h3>
+        <p>
+          The system should adhere to the following quality attributes:
+        </p>
+        <ul>
+          <li>
+            <b>Modularity:</b> The system should be divided into independent modules (frontend, backend, NLP) to facilitate maintenance and scalability.
+          </li>
+          <li>
+            <b>Scalability:</b> The system should be able to handle an increasing number of users and queries without degradation in performance.
+          </li>
+          <li>
+            <b>Usability:</b> The frontend interface should be intuitive and easy to use, even for non-technical users.
+          </li>
+        </ul>
+      </section>
+      <section id="buisness">
+        <h3>5.5 Business Rules</h3>
+        <p>
+          The system should comply with the following business rules:
+        </p>
+        <ul>
+          <li>
+            Users must provide valid input (e.g., non-empty queries) to generate GraphQL queries.
+          </li>
+          <li>
+            The OpenAI submodule requires a valid API key to function.
+          </li>
+          <li>
+            The system should log all user interactions for auditing and debugging purposes.
+          </li>
+        </ul>
+      </section>
+    </section>
+
+    <section typeof="sa:ReferenceList" role="document">
+      <h2 id="other-requirements">Other Requirements</h2>
+      <p>
+        The system should be deployed using Docker containers, with each module (frontend, backend, NLP) running in its own container. The deployment process should be automated using Docker Compose.
+      </p>
+    </section>
+  </article>
+</body>
+</html>
