@@ -523,6 +523,9 @@
               OpenAI.
             </li>
           </ul>
+          <p>
+            Additionally, the system leverages Python's <code>rdflib</code> library to create an RDF representation of the GraphQL schema. This RDF data is exposed via the <code>/generate_rdf</code> endpoint, allowing users to retrieve the schema in Turtle format. The system also uses SPARQL queries to dynamically retrieve entities and fields from the RDF graph, enabling linked data principles where entities are represented as URIs that link to their respective fields.
+          </p>
         </section>
         <section id="product-functions">
           <h3>2.2 Product Functions</h3>
@@ -670,17 +673,16 @@
             dependencies:
           </p>
           <ul>
-            <li>Angular for the frontend.</li>
-            <li>FastAPI for the backend.</li>
+            <li>Angular.js for the frontend.</li>
             <li>
-              spaCy, WordNet, and OpenAI for NLP
-              functionality.
+              <b>Python Libraries:</b> The system uses <code>rdflib</code> for RDF processing, <code>Flask</code> and <code>Flask-RESTx</code> for the API, and <code>spaCy</code> and <code>OpenAI</code> for NLP functionality.
             </li>
             <li>
-              Flask for both the backend and the
-              NLP model.
+                <b>Docker:</b> The system is containerized using Docker, with each module (frontend, backend, NLP) running in its own container.
             </li>
-            <li>Docker for containerization.</li>
+            <li>
+              <b>AWS Deployment:</b> The Docker containers are deployed to AWS Elastic Container Registry (ECR) and run on an Elastic Container Service (ECS) cluster, ensuring scalability and reliability.
+            </li>
           </ul>
         </section>
       </section>
@@ -880,6 +882,37 @@
               selected model.
             </li>
           </ul>
+          <p>
+            Additionally, the NLP module integrates with Python's <code>rdflib</code> library to create an RDF representation of the GraphQL schema. This RDF data is exposed via the <code>/generate_rdf</code> endpoint, allowing users to retrieve the schema in Turtle format. The system also uses SPARQL queries to dynamically retrieve entities and fields from the RDF graph, enabling linked data principles where entities are represented as URIs that link to their respective fields.
+          </p>
+          <section id="rdf-feature">
+            <h3>4.4 RDF and Linked Data Features</h3>
+            <p>
+              The system leverages RDF (Resource Description Framework) to represent the GraphQL schema semantically. Using Python's <code>rdflib</code> library, the schema is converted into an RDF graph, where:
+            </p>
+            <ul>
+              <li>
+                <b>Entities (Types):</b> Represented as RDF classes (<code>rdfs:Class</code>).
+              </li>
+              <li>
+                <b>Fields (Properties):</b> Represented as RDF properties (<code>rdf:Property</code>) with <code>rdfs:domain</code> linking them to their respective entities.
+              </li>
+            </ul>
+            <p>
+              The RDF data is exposed via the <code>/generate_rdf</code> endpoint, allowing users to retrieve the schema in Turtle format. Additionally, the system uses SPARQL queries to dynamically retrieve entities and fields from the RDF graph. For example:
+            </p>
+            <ul>
+              <li>
+                The <code>/entities</code> endpoint uses a SPARQL query to list all entities in the schema.
+              </li>
+              <li>
+                The <code>/entities/{entity}</code> endpoint returns a list all fields for a specific entity, leveraging linked data principles.
+              </li>
+            </ul>
+            <p>
+              This approach ensures that the system adheres to semantic web standards and provides a flexible, scalable way to explore the GraphQL schema.
+            </p>
+          </section>
           <section
             id="nlp-functional-requirements"
           >
@@ -1032,7 +1065,10 @@
           (frontend, backend, NLP) running in its
           own container. The deployment process
           should be automated using Docker
-          Compose.
+          Compose. The containers are deployed to
+          AWS's Elastic Container Registry (ECR), and
+          run on an Elastic Container Service (ECS)
+          cluster for scalability and reliability.
         </p>
       </section>
     </article>
