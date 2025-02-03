@@ -14,7 +14,6 @@ api = Api(app, title="GAIT API", description="A GraphQL Query Generator API", ve
 
 ns = api.namespace("apis", description="Query Endpoints")
 
-# Define Query Input Model for Swagger
 query_model = api.model(
     "QueryInput",
     {
@@ -24,7 +23,6 @@ query_model = api.model(
     },
 )
 
-# Define Query Response Model
 query_response_model = api.model(
     "QueryResponse",
     {
