@@ -471,10 +471,16 @@
             <b>Commons Submodule</b> Used by both NLP submodules to receive the schema through introspection and parse it.
          </li>
           <li>
-            <b>Custom NLP Submodule:</b> Uses spaCy and WordNet for query generation.
+            <b>Custom NLP Submodule:</b> Uses spaCy and WordNet for query generation. 
+            Through the nlp_processor, it extracts the intent (fetch), resource (queriable entity), specified fields of the queriable entity (or all fields if none are specified)
+            and the conditions (if any) from the user input. We use wordnet for synonym detection and spacy for similarity detection.
+            Then though the query_generator it creates the query based on the above resources.
           </li>
           <li>
             <b>OpenAI Submodule:</b> Leverages OpenAI's advanced NLP capabilities for query generation.
+          </li>
+          <li>
+            The main file of this module exposes an endpoint that accepts the public GraphQL API url, user input and the selected model.
           </li>
         </ul>
         <section id="nlp-functional-requirements">
