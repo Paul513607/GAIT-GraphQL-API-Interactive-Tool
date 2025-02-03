@@ -48,7 +48,7 @@ class GenerateQuery(Resource):
         global last_api_url
         api_url = request.args.get('api_url')
         user_input = request.args.get('user_input')
-        model = request.args.get('model')
+        model = request.args.get('model').lower()
 
         if not api_url or not user_input or not model:
             return {"error": "Missing required parameters"}, 400
