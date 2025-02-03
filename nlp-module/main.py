@@ -37,13 +37,15 @@ query_response_model = api.model(
     },
 )
 
+last_api_url = None
+
 # Endpoint to generate a GraphQL query
 @ns.route('/generate_query')
 class GenerateQuery(Resource):
     @api.expect(query_model)
     @api.marshal_with(query_response_model)
     def get(self):
-        """ Generate a GraphQL query from user input """
+        global last_api_url
         api_url = request.args.get('api_url')
         user_input = request.args.get('user_input')
         model = request.args.get('model')
@@ -51,6 +53,7 @@ class GenerateQuery(Resource):
         if not api_url or not user_input or not model:
             return {"error": "Missing required parameters"}, 400
 
+        last_api_url = api_url
         try:
             if model == "openai":
                 query = openai_model.generate_graphql_query(api_url, user_input)
@@ -70,12 +73,13 @@ class GenerateQuery(Resource):
 class GenerateRDF(Resource):
     @api.doc(params={"api_url": "GraphQL API URL"})
     def get(self):
-        """ Generate RDF data from GraphQL Schema """
+        global last_api_url
         api_url = request.args.get('api_url')
 
         if not api_url:
             return {"error": "Missing required parameter: api_url"}, 400
 
+        last_api_url = api_url
         try:
             _, schema = fetch_graphql_schema(api_url)
             rdf_data = convert_schema_to_rdf(schema)
@@ -88,11 +92,14 @@ class GenerateRDF(Resource):
 class Entities(Resource):
     @api.doc(params={"api_url": "GraphQL API URL"})
     def get(self):
-        """ List all entities (types) in the schema as URIs with links to fields """
+        global last_api_url
         api_url = request.args.get('api_url')
+        last_api_url = api_url
 
         if not api_url:
-            return {"error": "Missing required parameter: api_url"}, 400
+            api_url = last_api_url
+        else:
+            last_api_url = api_url
 
         try:
             _, schema = fetch_graphql_schema(api_url)
@@ -109,7 +116,7 @@ class Entities(Resource):
 
             entities = [
                 {
-                    "uri": f"http://localhost:5000/apis/entities/{str(row.entity).split('#')[-1]}?api_url={api_url}",
+                    "uri": f"http://localhost:5000/apis/entities/{str(row.entity).split('#')[-1]}",
                 }
                 for row in graph.query(query)
             ]
@@ -118,31 +125,25 @@ class Entities(Resource):
             return {"error": str(e)}, 500
 
 # Endpoint to list all fields for a specific entity
-@ns.route('/entities/<path:entity_uri>')
+@ns.route('/entities/<string:entity_name>')
 class Fields(Resource):
     @api.doc(params={"api_url": "GraphQL API URL"})
-    def get(self, entity_uri):
-        """ List all fields for a specific entity """
+    def get(self, entity_name):
+        global last_api_url
         api_url = request.args.get('api_url')
 
         if not api_url:
-            return {"error": "Missing required parameter: api_url"}, 400
+            api_url = last_api_url
+        else:
+            last_api_url = api_url
 
         try:
             _, schema = fetch_graphql_schema(api_url)
-            graph = convert_schema_to_rdf(schema)
-
-            # SPARQL query to find all fields for the given entity
-            query = prepareQuery(
-                """
-                SELECT ?field WHERE {
-                    ?field rdfs:domain <%(entity_uri)s> .
-                }
-                """ % {"entity_uri": entity_uri}
-            )
-
-            fields = [str(row.field) for row in graph.query(query)]
-            return {"entity": entity_uri, "fields": fields}
+            for gql_type in schema["types"]:
+                if gql_type["name"] == entity_name and gql_type["kind"] == "OBJECT":
+                    fields = [f"uri: http://localhost:5000/apis/entities/{entity_name}/{field['name']}" for field in gql_type.get("fields", [])]
+                    return {"entity": entity_name, "fields": fields}
+            return {"error": f"Entity '{entity_name}' not found"}, 404
         except Exception as e:
             return {"error": str(e)}, 500
 
