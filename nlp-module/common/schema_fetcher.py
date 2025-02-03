@@ -57,7 +57,7 @@ def fetch_graphql_schema(api_url):
     client = Client(transport=transport, fetch_schema_from_transport=True)
 
     result = client.execute(query)
-    return result["__schema"]
+    return client.schema, result['__schema']
 
 
 def extract_fields(graphql_type, visited_types=None):
@@ -149,5 +149,5 @@ if __name__ == "__main__":
     # schema = fetch_graphql_schema("https://countries.trevorblades.com/")
     # schema = fetch_graphql_schema("https://portal.ehri-project.eu/api/graphql")
     schema = fetch_graphql_schema("https://api.tcgdex.net/v2/graphql")
-    parsed_schema = parse_graphql_schema(schema)
+    parsed_schema, _ = parse_graphql_schema(schema)
     pprint(parsed_schema)

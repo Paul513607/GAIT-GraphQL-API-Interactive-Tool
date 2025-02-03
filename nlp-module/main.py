@@ -4,8 +4,10 @@ from common.schema_fetcher import fetch_graphql_schema
 from openai_model import openai_model
 from nlp_custom_model import nlp_main
 from rdf.rdf_processor import convert_schema_to_rdf
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 @app.route('/generate_query', methods=['GET'])
 def generate_query():
@@ -39,7 +41,7 @@ def generate_rdf():
         return jsonify({"error": "Missing required parameter: api_url"}), 400
 
     try:
-        schema = fetch_graphql_schema(api_url)
+        _, schema = fetch_graphql_schema(api_url)
         rdf_data = convert_schema_to_rdf(schema)
         return Response(rdf_data, mimetype="text/turtle")
     except Exception as e:

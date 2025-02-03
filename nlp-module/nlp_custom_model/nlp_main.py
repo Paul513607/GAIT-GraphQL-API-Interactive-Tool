@@ -5,7 +5,7 @@ from common.schema_fetcher import fetch_graphql_schema, parse_graphql_schema
 
 
 def get_graphql_query(api_url, user_query):
-    schema = fetch_graphql_schema(api_url)
+    schema, _ = fetch_graphql_schema(api_url)
     parsed_schema = parse_graphql_schema(schema)
 
     doc_main = nlp(user_query)

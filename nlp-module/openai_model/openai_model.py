@@ -10,7 +10,7 @@ client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 def generate_graphql_query(api_url, user_input):
     """Generate a GraphQL query based on user input."""
-    schema = fetch_graphql_schema(api_url)
+    schema, _ = fetch_graphql_schema(api_url)
     schema_text = str(schema)  # Convert schema JSON to string for OpenAI
 
     prompt = f"""
