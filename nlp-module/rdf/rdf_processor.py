@@ -29,4 +29,4 @@ def convert_schema_to_rdf(schema):
                     graph.add((field_uri, RDFS.range, field_type_uri))
                     graph.add((type_uri, RDFS.subClassOf, field_type_uri))
 
-    return graph.serialize(format="turtle")
+    return graph    

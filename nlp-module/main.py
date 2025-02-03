@@ -1,6 +1,8 @@
 from flask import Flask, Response, request, jsonify
 from flask_cors import CORS
-from flask_restx import Api, Resource, fields  # Import Flask-RESTx
+from flask_restx import Api, Resource, fields
+from rdflib import Graph, Namespace, RDF, RDFS, URIRef, Literal
+from rdflib.plugins.sparql import prepareQuery
 
 from common.schema_fetcher import fetch_graphql_schema
 from openai_model import openai_model
@@ -14,6 +16,10 @@ api = Api(app, title="GAIT API", description="A GraphQL Query Generator API", ve
 
 ns = api.namespace("apis", description="Query Endpoints")
 
+# Namespace for GraphQL RDF
+GRAPHQL = Namespace("http://example.org/graphql#")
+
+# Define models for Swagger documentation
 query_model = api.model(
     "QueryInput",
     {
@@ -31,7 +37,7 @@ query_response_model = api.model(
     },
 )
 
-
+# Endpoint to generate a GraphQL query
 @ns.route('/generate_query')
 class GenerateQuery(Resource):
     @api.expect(query_model)
@@ -59,7 +65,7 @@ class GenerateQuery(Resource):
         except Exception as e:
             return {"error": str(e)}, 500
 
-
+# Endpoint to generate RDF data from a GraphQL schema
 @ns.route('/generate_rdf')
 class GenerateRDF(Resource):
     @api.doc(params={"api_url": "GraphQL API URL"})
@@ -77,6 +83,68 @@ class GenerateRDF(Resource):
         except Exception as e:
             return {"error": str(e)}, 500
 
+# Endpoint to list all entities (types) in the schema as URIs
+@ns.route('/entities')
+class Entities(Resource):
+    @api.doc(params={"api_url": "GraphQL API URL"})
+    def get(self):
+        """ List all entities (types) in the schema as URIs with links to fields """
+        api_url = request.args.get('api_url')
+
+        if not api_url:
+            return {"error": "Missing required parameter: api_url"}, 400
+
+        try:
+            _, schema = fetch_graphql_schema(api_url)
+            graph = convert_schema_to_rdf(schema)
+
+            # SPARQL query to find all entities (classes)
+            query = prepareQuery(
+                """
+                SELECT ?entity WHERE {
+                    ?entity a rdfs:Class .
+                }
+                """
+            )
+
+            entities = [
+                {
+                    "uri": f"http://localhost:5000/apis/entities/{str(row.entity).split('#')[-1]}?api_url={api_url}",
+                }
+                for row in graph.query(query)
+            ]
+            return {"entities": entities}
+        except Exception as e:
+            return {"error": str(e)}, 500
+
+# Endpoint to list all fields for a specific entity
+@ns.route('/entities/<path:entity_uri>')
+class Fields(Resource):
+    @api.doc(params={"api_url": "GraphQL API URL"})
+    def get(self, entity_uri):
+        """ List all fields for a specific entity """
+        api_url = request.args.get('api_url')
+
+        if not api_url:
+            return {"error": "Missing required parameter: api_url"}, 400
+
+        try:
+            _, schema = fetch_graphql_schema(api_url)
+            graph = convert_schema_to_rdf(schema)
+
+            # SPARQL query to find all fields for the given entity
+            query = prepareQuery(
+                """
+                SELECT ?field WHERE {
+                    ?field rdfs:domain <%(entity_uri)s> .
+                }
+                """ % {"entity_uri": entity_uri}
+            )
+
+            fields = [str(row.field) for row in graph.query(query)]
+            return {"entity": entity_uri, "fields": fields}
+        except Exception as e:
+            return {"error": str(e)}, 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
