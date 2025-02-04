@@ -1,23 +1,17 @@
-# Use an official Node.js runtime as the base image
-FROM node:18-alpine
+FROM node:18 AS builder
 
-# Set the working directory in the container
 WORKDIR /app
 
-# Copy package.json and package-lock.json (if available)
-COPY package.json package-lock.json* ./
+COPY ["package.json","package-lock.json","/app/"]
 
-# Install dependencies
 RUN npm install
 
-# Copy the rest of the application code
-COPY . .
+RUN npm install -g @angular/cli
 
-# Build the Angular app for production
-RUN npm run build
+COPY . /app
 
-# Expose the port the app runs on
+RUN ng build
+
 EXPOSE 4200
 
-# Command to run the application
-CMD ["npm", "start"]
+CMD ["ng", "serve", "--host", "0.0.0.0", "--port", "4200"]
