@@ -21,11 +21,13 @@ class QueryRequest(BaseModel):
     model: str     
     user_input: str 
 
+NLP_MODULE_URL = "http://127.0.0.1:5000/apis"
+
 def call_nlp_module(api_url: str, user_input: str, model: str):
-    openai_api_url = f"http://127.0.0.1:5000/apis/generate_query?api_url={api_url}&model={model}&user_input={user_input}"
+    api_url = f"{NLP_MODULE_URL}/generate_query?api_url={api_url}&model={model}&user_input={user_input}"
     
     try:
-        response = requests.get(openai_api_url)
+        response = requests.get(api_url)
         response.raise_for_status() 
         data = response.json()
         raw_query = data["query"]
@@ -50,4 +52,34 @@ async def generate_graphql_query(request: QueryRequest):
 @app.get("/apis", response_model=List[Api])
 async def get_apis():
     return apis
+
+@app.get("/entities")
+def fetch_country_entity(api_url: str):
+    api_url = f"{NLP_MODULE_URL}/entities?api_url={api_url}"
+    try:
+        response = requests.get(api_url)
+        response.raise_for_status()
+        data = response.json()
+        if "entities" in data and isinstance(data["entities"], list):
+            return data["entities"]
+        else:
+            raise HTTPException(status_code=400, detail="Invalid response format: 'entities' key not found")
+    except requests.RequestException as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching entities: {str(e)}")
+
+@app.get("/entities/{entity}")
+def fetch_entities(entity: str):
+    api_url = f"{NLP_MODULE_URL}/entities/{entity}"
+    try:
+        response = requests.get(api_url)
+        response.raise_for_status()
+        data = response.json()
+        if "fields" in data and isinstance(data["fields"], list):
+            return data["fields"]
+        else:
+            return []
+    except requests.RequestException as e:
+        return []
+
+
 

@@ -1,5 +1,6 @@
 import { CdkTextareaAutosize } from '@angular/cdk/text-field';
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import {
   afterNextRender,
   Component,
@@ -12,7 +13,9 @@ import {
   WritableSignal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
+import { MatChipsModule } from '@angular/material/chips';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -25,15 +28,17 @@ import {
   map,
   Observable,
   of,
+  skipWhile,
   Subject,
   switchMap,
   take,
   takeUntil,
   tap,
+  throwError,
 } from 'rxjs';
+import { IApiModel } from '../../lib/model/i-api-model';
 import { GraphQlService } from '../../lib/service/graph-ql.service';
 import { QueryManagerService } from '../../lib/service/query-manager.service';
-import { IApiModel } from '../../lib/model/i-api-model';
 
 @Component({
   selector: 'app-tool',
@@ -45,6 +50,7 @@ import { IApiModel } from '../../lib/model/i-api-model';
     MatButtonModule,
     MatProgressSpinnerModule,
     MatSelectModule,
+    MatChipsModule,
     CodemirrorModule,
     FormsModule,
   ],
@@ -75,7 +81,7 @@ export class ToolComponent {
   models: string[] = ['OpenAi', 'Custom'];
   selectedModel = this.models[0];
   apis$: Observable<IApiModel[]> = this.service.getApis();
-  selectedApi?: string;
+  selectedApi!: string;
   @ViewChild('autosize') autosize!: CdkTextareaAutosize;
   input$: Subject<string> = new Subject<string>();
   buildingQuery: WritableSignal<boolean> = signal(false);
@@ -92,6 +98,25 @@ export class ToolComponent {
   naturalLanguageQuery: string | undefined;
   queryModel: WritableSignal<string> = signal('');
   sendQueryEnabled: Signal<boolean> = computed(() => !!this.queryModel());
+  private words$: Subject<string> = new Subject<string>();
+  suggestions$: Observable<string[]> = this.words$.pipe(
+    switchMap((word) =>
+      this.service.getEntities(this.selectedApi).pipe(
+        map((entities) =>
+          entities.map((entity) => this.getLastWordFromURL(entity.uri))
+        ),
+        switchMap((entities) =>
+          entities
+            .map((word) => this.capitalize(word))
+            .includes(this.capitalize(word))
+            ? this.service.getFields(this.capitalize(word))
+            : of([])
+        ),
+        skipWhile((suggestions) => suggestions.length == 0)
+      )
+    ),
+    map((fields) => fields.map((field) => this.getLastWordFromURL(field)))
+  );
 
   ngOnInit() {
     this.apis$.pipe(takeUntil(this.destroy$)).subscribe({
@@ -115,6 +140,23 @@ export class ToolComponent {
       );
   }
 
+  onInputChange(event: Event) {
+    const input = (event.target as HTMLTextAreaElement)?.value;
+
+    if (!!input) {
+      const words = input.trim().split(/\s+/);
+      this.words$.next(words[words.length - 1]);
+    }
+  }
+
+  suggestionSelected(event: MatAutocompleteSelectedEvent) {
+    this.naturalLanguageQuery += ' ' + event.option.value;
+  }
+
+  addSuggestion(suggestion: string) {
+    this.naturalLanguageQuery += ' ' + suggestion;
+  }
+
   generateQuery() {
     if (this.naturalLanguageQuery) {
       this.input$.next(this.naturalLanguageQuery.trim());
@@ -134,7 +176,7 @@ export class ToolComponent {
           this.fetchingResult.set(false);
         }),
         take(1),
-        catchError((err) => of(err))
+        catchError((err) => of(JSON.stringify({ error: err }, null, 2)))
       );
   }
 
@@ -147,5 +189,18 @@ export class ToolComponent {
         injector: this.injector,
       }
     );
+  }
+
+  private getLastWordFromURL(url: string) {
+    const urlObj = new URL(url);
+    const pathSegments = urlObj.pathname
+      .split('/')
+      .filter((segment) => segment !== '');
+    return pathSegments[pathSegments.length - 1];
+  }
+
+  private capitalize(value: string): string {
+    if (!value) return value;
+    return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
   }
 }

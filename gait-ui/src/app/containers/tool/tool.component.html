@@ -57,7 +57,22 @@
           cdkAutosizeMinRows="1"
           cdkAutosizeMaxRows="5"
           [(ngModel)]="naturalLanguageQuery"
+          (input)="onInputChange($event)"
         ></textarea>
+        <mat-chip-set>
+          @for (suggestion of (suggestions$ | async); track suggestion) {
+          <mat-chip-row>
+            {{ suggestion }}
+            <button
+              matChipTrailingIcon
+              [isInteractive]="true"
+              (click)="addSuggestion(suggestion)"
+            >
+              <mat-icon>add</mat-icon>
+            </button>
+          </mat-chip-row>
+          }
+        </mat-chip-set>
         <button mat-icon-button matSuffix>
           <mat-icon (click)="generateQuery()">send</mat-icon>
         </button>

@@ -16,7 +16,6 @@ def get_graphql_query(api_url, user_query):
 
     if resource:
         query = generate_graphql_query(intent, resource, fields, condition_value_dict, parsed_schema)
-        # print("\nGenerated GraphQL Query:", query)
         return query
     else:
         print("Resource not recognized. Please try again.")

@@ -36,6 +36,8 @@ query_response_model = api.model(
 )
 
 last_api_url = None
+graph = None
+schema = None
 
 @ns.route('/generate_query')
 class GenerateQuery(Resource):
@@ -43,6 +45,8 @@ class GenerateQuery(Resource):
     @api.marshal_with(query_response_model)
     def get(self):
         global last_api_url
+        global schema
+        global graph
         api_url = request.args.get('api_url')
         user_input = request.args.get('user_input')
         model = request.args.get('model').lower()
@@ -51,6 +55,10 @@ class GenerateQuery(Resource):
             return {"error": "Missing required parameters"}, 400
 
         last_api_url = api_url
+        if not schema:
+            _, schema = fetch_graphql_schema(api_url)
+        if not graph:
+            graph = convert_schema_to_rdf(schema)
         try:
             if model == "openai":
                 query = openai_model.generate_graphql_query(api_url, user_input)
@@ -88,19 +96,22 @@ class Entities(Resource):
     @api.doc(params={"api_url": "GraphQL API URL"})
     def get(self):
         global last_api_url
+        global schema
+        global graph
         api_url = request.args.get('api_url')
         last_api_url = api_url
         base_url = request.host_url.rstrip("/")
 
+        if not schema:
+            _, schema = fetch_graphql_schema(api_url)
+        if not graph:
+            graph = convert_schema_to_rdf(schema)
         if not api_url:
             api_url = last_api_url
         else:
             last_api_url = api_url
 
         try:
-            _, schema = fetch_graphql_schema(api_url)
-            graph = convert_schema_to_rdf(schema)
-
             query = prepareQuery(
                 """
                 SELECT ?entity WHERE {
@@ -124,9 +135,14 @@ class Fields(Resource):
     @api.doc(params={"api_url": "GraphQL API URL"})
     def get(self, entity_name):
         global last_api_url
+        global schema
+        global graph
         api_url = request.args.get('api_url')
         base_url = request.host_url.rstrip("/")
-
+        if not schema:
+            _, schema = fetch_graphql_schema(api_url)
+        if not graph:
+            graph = convert_schema_to_rdf(schema)
         if not api_url:
             api_url = last_api_url
         else:
