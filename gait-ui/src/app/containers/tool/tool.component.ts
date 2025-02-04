@@ -24,6 +24,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { CodemirrorModule } from '@ctrl/ngx-codemirror';
 import {
   catchError,
+  distinctUntilChanged,
   finalize,
   map,
   Observable,
@@ -35,6 +36,7 @@ import {
   takeUntil,
   tap,
   throwError,
+  timeout,
 } from 'rxjs';
 import { IApiModel } from '../../lib/model/i-api-model';
 import { GraphQlService } from '../../lib/service/graph-ql.service';
@@ -100,6 +102,8 @@ export class ToolComponent {
   sendQueryEnabled: Signal<boolean> = computed(() => !!this.queryModel());
   private words$: Subject<string> = new Subject<string>();
   suggestions$: Observable<string[]> = this.words$.pipe(
+    map((word) => word.trim()),
+    distinctUntilChanged(),
     switchMap((word) =>
       this.service.getEntities(this.selectedApi).pipe(
         map((entities) =>
@@ -172,11 +176,14 @@ export class ToolComponent {
       .executeQuery(this.selectedApi!, this.queryModel())
       .pipe(
         map((response) => JSON.stringify(response.data, null, 2)),
+        take(1),
+        catchError((err) => {
+          this.fetchingResult.set(false);
+          return of(JSON.stringify({ error: err }, null, 2));
+        }),
         finalize(() => {
           this.fetchingResult.set(false);
-        }),
-        take(1),
-        catchError((err) => of(JSON.stringify({ error: err }, null, 2)))
+        })
       );
   }
 

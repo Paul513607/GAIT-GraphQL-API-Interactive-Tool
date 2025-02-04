@@ -99,12 +99,11 @@ class Entities(Resource):
         global schema
         global graph
         api_url = request.args.get('api_url')
-        last_api_url = api_url
         base_url = request.host_url.rstrip("/")
 
-        if not schema:
+        if not schema or api_url != last_api_url:
             _, schema = fetch_graphql_schema(api_url)
-        if not graph:
+        if not graph or api_url != last_api_url:
             graph = convert_schema_to_rdf(schema)
         if not api_url:
             api_url = last_api_url
