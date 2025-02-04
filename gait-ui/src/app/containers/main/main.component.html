@@ -1,15 +1,15 @@
 <div class="container">
   <div class="content">
     <div class="left-side">
-      <h1>Hello, {{ title }}</h1>
+      <h1>{{ title }}</h1>
       <p>Congratulations! Your app is running. 🎉</p>
     </div>
     <div class="divider" role="separator" aria-label="Divider"></div>
     <div class="right-side">
       <div class="pill-group">
-        @for (item of [ { title: 'Explore the Docs', link:
-        'https://docs.google.com/document/d/1XsM08RrTMG2hYK2U-hqvDGGburY00UI7ikCV2KEp4C0/edit?usp=sharing'
-        }, { title: 'Tool', link: '/tool'}]; track item.title) {
+        @for (item of [ { title: 'Repository', link:
+        'https://github.com/Paul513607/GAIT-GraphQL-API-Interactive-Tool' },{
+        title: 'Tool', link: '/tool'}]; track item.title) {
         <a class="pill" [href]="item.link" target="_blank" rel="noopener">
           <span>{{ item.title }}</span>
           <svg

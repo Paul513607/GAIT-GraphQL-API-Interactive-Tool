@@ -7,5 +7,5 @@ import { Component } from '@angular/core';
   styleUrl: './main.component.scss',
 })
 export class MainComponent {
-  title = 'gait-ui';
+  title: string = 'GraphQL API Interactive Tool';
 }
